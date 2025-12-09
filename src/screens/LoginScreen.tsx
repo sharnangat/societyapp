@@ -11,6 +11,11 @@ import {
 } from 'react-native';
 import { Alert } from 'react-native';
 
+const usersEndpoint =
+  Platform.OS === 'android'
+    ? 'http://10.0.2.2:3000/users'
+    : 'http://localhost:3000/users';
+
 type Props = {
   isDarkMode: boolean;
   onSwitchToRegister: () => void;
@@ -22,7 +27,7 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
 
   const handleSubmit = async () => {
     try {
-      const res = await fetch('http://localhost:3000/users', {
+      const res = await fetch(usersEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
