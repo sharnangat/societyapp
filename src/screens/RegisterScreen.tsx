@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Alert } from 'react-native';
 
 type Props = {
   isDarkMode: boolean;
@@ -65,9 +66,8 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
-  const handleSubmit = () => {
-    // TODO: replace with registration API call
-    console.log('Register payload:', {
+  const handleSubmit = async () => {
+    const payload = {
       username: form.username,
       email: form.email,
       password_hash: form.password,
@@ -86,7 +86,24 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
       last_login: form.lastLogin,
       last_login_ip: form.lastLoginIp,
       created_by: form.createdBy,
-    });
+    };
+
+    try {
+      const res = await fetch('http://localhost:3000/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        throw new Error(`Request failed: ${res.status}`);
+      }
+      Alert.alert('Success', 'Registration submitted to /users');
+    } catch (err) {
+      console.error('Register submit error', err);
+      Alert.alert('Error', 'Could not submit registration. Check server logs.');
+    }
   };
 
   return (

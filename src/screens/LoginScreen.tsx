@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { Alert } from 'react-native';
 
 type Props = {
   isDarkMode: boolean;
@@ -19,9 +20,23 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = () => {
-    // TODO: replace with real auth call
-    console.log('Login payload:', { email, password });
+  const handleSubmit = async () => {
+    try {
+      const res = await fetch('http://localhost:3000/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) {
+        throw new Error(`Request failed: ${res.status}`);
+      }
+      Alert.alert('Success', 'Login submitted to /users');
+    } catch (err) {
+      console.error('Login submit error', err);
+      Alert.alert('Error', 'Could not submit login. Check server logs.');
+    }
   };
 
   return (
