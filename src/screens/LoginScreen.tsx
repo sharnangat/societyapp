@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -10,13 +11,7 @@ import {
   View,
 } from 'react-native';
 import { Alert } from 'react-native';
-
-const usersEndpoint =
-  Platform.OS === 'android'
-    ? 'http://10.0.2.2:3000/api/users'
-    : Platform.OS === 'web'
-    ? 'http://localhost:3000/api/users'
-    : 'http://localhost:3000/api/users';
+import { useAuth } from '../context/AuthContext';
 
 type Props = {
   isDarkMode: boolean;
@@ -26,26 +21,57 @@ type Props = {
 function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth();
+
+  const validateForm = () => {
+    if (!email.trim()) {
+      Alert.alert('Validation Error', 'Please enter your email address');
+      return false;
+    }
+    if (!email.includes('@')) {
+      Alert.alert('Validation Error', 'Please enter a valid email address');
+      return false;
+    }
+    if (!password.trim()) {
+      Alert.alert('Validation Error', 'Please enter your password');
+      return false;
+    }
+    if (password.length < 6) {
+      Alert.alert('Validation Error', 'Password must be at least 6 characters');
+      return false;
+    }
+    return true;
+  };
 
   const handleSubmit = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsLoading(true);
     try {
-      const res = await fetch(usersEndpoint, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ email, password }),
-      });
-      if (!res.ok) {
-        const errorText = await res.text();
-        throw new Error(`Request failed: ${res.status} - ${errorText}`);
-      }
-      const data = await res.json();
+      console.log('Login form submitted');
+      await login(email.trim(), password);
+      // Login successful - AuthContext will handle navigation via App.tsx
       Alert.alert('Success', 'Login successful!');
     } catch (err) {
-      console.error('Login submit error', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      Alert.alert('Error', `Could not submit login: ${errorMessage}`);
+      console.error('Login submit error:', err);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      
+      // Show user-friendly error messages
+      let displayMessage = errorMessage;
+      if (errorMessage.includes('Network error') || errorMessage.includes('fetch')) {
+        displayMessage = 'Cannot connect to server. Please ensure the backend is running on http://localhost:3000';
+      } else if (errorMessage.includes('401') || errorMessage.toLowerCase().includes('invalid')) {
+        displayMessage = 'Invalid email or password. Please try again.';
+      } else if (errorMessage.includes('404')) {
+        displayMessage = 'Login endpoint not found. Please check server configuration.';
+      }
+      
+      Alert.alert('Login Failed', displayMessage);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -79,8 +105,15 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
           required
         />
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitText}>Sign in</Text>
+        <TouchableOpacity
+          style={[styles.submitButton, isLoading && styles.submitButtonDisabled]}
+          onPress={handleSubmit}
+          disabled={isLoading}>
+          {isLoading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.submitText}>Sign in</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -191,6 +224,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
   },
   submitText: {
     color: '#fff',

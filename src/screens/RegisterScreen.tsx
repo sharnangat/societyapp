@@ -103,16 +103,51 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
         },
         body: JSON.stringify(payload),
       });
+      
       if (!res.ok) {
         const errorText = await res.text();
-        throw new Error(`Request failed: ${res.status} - ${errorText}`);
+        let errorMessage = `Registration failed (${res.status})`;
+        
+        // Try to parse JSON error response
+        try {
+          const errorJson = JSON.parse(errorText);
+          errorMessage = errorJson.error || errorJson.message || errorMessage;
+          
+          // Handle specific error cases
+          if (errorMessage.toLowerCase().includes('already exists') || 
+              errorMessage.toLowerCase().includes('user already exists')) {
+            errorMessage = 'An account with this email already exists. Please login instead.';
+          }
+        } catch {
+          // If not JSON, use the text as is
+          if (errorText) {
+            errorMessage = errorText.includes('already exists') 
+              ? 'An account with this email already exists. Please login instead.'
+              : errorText;
+          }
+        }
+        
+        throw new Error(errorMessage);
       }
+      
       const data = await res.json();
-      Alert.alert('Success', 'Registration successful!');
+      Alert.alert(
+        'Success', 
+        'Registration successful! You can now login.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Optionally switch to login screen after successful registration
+              // onSwitchToLogin();
+            }
+          }
+        ]
+      );
     } catch (err) {
       console.error('Register submit error', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      Alert.alert('Error', `Could not submit registration: ${errorMessage}`);
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      Alert.alert('Registration Failed', errorMessage);
     }
   };
 

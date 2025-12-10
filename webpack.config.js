@@ -29,6 +29,7 @@ module.exports = {
     extensions: ['.web.js', '.js', '.web.ts', '.ts', '.web.tsx', '.tsx', '.json'],
     alias: {
       'react-native$': 'react-native-web',
+      '@react-native-async-storage/async-storage': '@react-native-async-storage/async-storage/lib/commonjs',
     },
   },
   plugins: [
