@@ -13,8 +13,10 @@ import { Alert } from 'react-native';
 
 const usersEndpoint =
   Platform.OS === 'android'
-    ? 'http://10.0.2.2:3000/users'
-    : 'http://localhost:3000/users';
+    ? 'http://10.0.2.2:3000/api/users'
+    : Platform.OS === 'web'
+    ? 'http://localhost:3000/api/users'
+    : 'http://localhost:3000/api/users';
 
 type Props = {
   isDarkMode: boolean;
@@ -35,12 +37,15 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
         body: JSON.stringify({ email, password }),
       });
       if (!res.ok) {
-        throw new Error(`Request failed: ${res.status}`);
+        const errorText = await res.text();
+        throw new Error(`Request failed: ${res.status} - ${errorText}`);
       }
-      Alert.alert('Success', 'Login submitted to /users');
+      const data = await res.json();
+      Alert.alert('Success', 'Login successful!');
     } catch (err) {
       console.error('Login submit error', err);
-      Alert.alert('Error', 'Could not submit login. Check server logs.');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      Alert.alert('Error', `Could not submit login: ${errorMessage}`);
     }
   };
 

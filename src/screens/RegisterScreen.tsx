@@ -13,8 +13,10 @@ import { Alert } from 'react-native';
 
 const usersEndpoint =
   Platform.OS === 'android'
-    ? 'http://10.0.2.2:3000/users'
-    : 'http://localhost:3000/users';
+    ? 'http://10.0.2.2:3000/api/users'
+    : Platform.OS === 'web'
+    ? 'http://localhost:3000/api/users'
+    : 'http://localhost:3000/api/users';
 
 type Props = {
   isDarkMode: boolean;
@@ -44,7 +46,7 @@ type RegisterFormState = {
 
 function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
   const [form, setForm] = useState<RegisterFormState>({
-    username: 'temp_username',
+    username: '',
     email: '',
     password: '',
     firstName: '',
@@ -102,12 +104,15 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
-        throw new Error(`Request failed: ${res.status}`);
+        const errorText = await res.text();
+        throw new Error(`Request failed: ${res.status} - ${errorText}`);
       }
-      Alert.alert('Success', 'Registration submitted to /users');
+      const data = await res.json();
+      Alert.alert('Success', 'Registration successful!');
     } catch (err) {
       console.error('Register submit error', err);
-      Alert.alert('Error', 'Could not submit registration. Check server logs.');
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      Alert.alert('Error', `Could not submit registration: ${errorMessage}`);
     }
   };
 
