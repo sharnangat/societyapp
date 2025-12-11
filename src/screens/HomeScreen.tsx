@@ -13,11 +13,21 @@ type Props = {
 };
 
 function HomeScreen({ isDarkMode }: Props) {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
+
+  React.useEffect(() => {
+    console.log('=== HOME SCREEN DEBUG ===');
+    console.log('User data:', JSON.stringify(user, null, 2));
+    console.log('Token present:', token ? 'YES' : 'NO');
+    console.log('Token value:', token ? `${token.substring(0, 20)}...` : 'N/A');
+  }, [user, token]);
 
   const handleLogout = async () => {
+    console.log('=== LOGOUT DEBUG ===');
+    console.log('Logging out user:', user?.email);
     try {
       await logout();
+      console.log('Logout successful');
     } catch (error) {
       console.error('Logout error:', error);
     }

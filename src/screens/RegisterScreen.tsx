@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import {
+  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -13,10 +14,10 @@ import { Alert } from 'react-native';
 
 const usersEndpoint =
   Platform.OS === 'android'
-    ? 'http://10.0.2.2:3000/api/users'
+    ? 'http://10.0.2.2:3000/user/register'
     : Platform.OS === 'web'
-    ? 'http://localhost:3000/api/users'
-    : 'http://localhost:3000/api/users';
+    ? 'http://localhost:3000/user/register'
+    : 'http://localhost:3000/user/register';
 
 type Props = {
   isDarkMode: boolean;
@@ -65,6 +66,7 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
     lastLoginIp: '',
     createdBy: '',
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateField = <K extends keyof RegisterFormState>(
     key: K,
@@ -73,29 +75,111 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
     setForm(prev => ({ ...prev, [key]: value }));
   };
 
+  const validateForm = () => {
+    if (!form.username.trim()) {
+      Alert.alert('Validation Error', 'Please enter a username');
+      return false;
+    }
+    if (!form.email.trim()) {
+      Alert.alert('Validation Error', 'Please enter your email address');
+      return false;
+    }
+    if (!form.email.includes('@')) {
+      Alert.alert('Validation Error', 'Please enter a valid email address');
+      return false;
+    }
+    if (!form.password.trim()) {
+      Alert.alert('Validation Error', 'Password is required');
+      return false;
+    }
+    if (form.password.length < 6) {
+      Alert.alert('Validation Error', 'Password must be at least 6 characters');
+      return false;
+    }
+    return true;
+  };
+
+  // Test backend connectivity
+  const testBackendConnection = async () => {
+    try {
+      console.log('Testing backend connectivity to:', usersEndpoint);
+      const baseUrl = usersEndpoint.replace('/user/register', '');
+      const testUrl = `${baseUrl}/health`;
+      const response = await fetch(testUrl, { method: 'GET' });
+      console.log('Backend health check status:', response.status);
+      return response.ok;
+    } catch (error) {
+      console.error('Backend connectivity test failed:', error);
+      return false;
+    }
+  };
+
   const handleSubmit = async () => {
-    const payload = {
-      username: form.username,
-      email: form.email,
-      password_hash: form.password,
-      first_name: form.firstName,
-      last_name: form.lastName,
-      phone: form.phone,
+    // Prevent double submission
+    if (isSubmitting) {
+      console.log('Registration already in progress, ignoring duplicate submit');
+      return;
+    }
+
+    console.log('=== REGISTRATION DEBUG START ===');
+    console.log('Current timestamp:', new Date().toISOString());
+    
+    // Validate form before submission
+    if (!validateForm()) {
+      console.log('=== REGISTRATION DEBUG END (VALIDATION FAILED) ===');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Test backend connection (optional, won't block if it fails)
+    const backendReachable = await testBackendConnection();
+    console.log('Backend reachable:', backendReachable);
+
+    // The backend expects 'password' field, not 'password_hash'
+    // The backend will hash the password server-side
+    const payload: Record<string, any> = {
+      username: form.username.trim(),
+      email: form.email.trim(),
+      password: form.password, // Changed from password_hash to password
       status: form.status,
       email_verified: form.emailVerified,
       phone_verified: form.phoneVerified,
       failed_login_attempts: Number(form.failedLoginAttempts || 0),
-      account_locked_until: form.accountLockedUntil,
-      password_reset_token: form.passwordResetToken,
-      password_reset_expires: form.passwordResetExpires,
-      email_verification_token: form.emailVerificationToken,
-      email_verification_expires: form.emailVerificationExpires,
-      last_login: form.lastLogin,
-      last_login_ip: form.lastLoginIp,
-      created_by: form.createdBy,
     };
 
+    // Add optional fields only if they have values
+    if (form.firstName.trim()) payload.first_name = form.firstName.trim();
+    if (form.lastName.trim()) payload.last_name = form.lastName.trim();
+    if (form.phone.trim()) payload.phone = form.phone.trim();
+    if (form.accountLockedUntil) payload.account_locked_until = form.accountLockedUntil;
+    if (form.passwordResetToken) payload.password_reset_token = form.passwordResetToken;
+    if (form.passwordResetExpires) payload.password_reset_expires = form.passwordResetExpires;
+    if (form.emailVerificationToken) payload.email_verification_token = form.emailVerificationToken;
+    if (form.emailVerificationExpires) payload.email_verification_expires = form.emailVerificationExpires;
+    if (form.lastLogin) payload.last_login = form.lastLogin;
+    if (form.lastLoginIp) payload.last_login_ip = form.lastLoginIp;
+    if (form.createdBy) payload.created_by = form.createdBy;
+
+    console.log('Form data:', {
+      username: form.username,
+      email: form.email,
+      password: form.password ? '***' : '',
+      passwordLength: form.password.length,
+      firstName: form.firstName,
+      lastName: form.lastName,
+    });
+    console.log('Registration endpoint:', usersEndpoint);
+    console.log('Platform:', Platform.OS);
+    console.log('Registration payload (sanitized):', JSON.stringify({ ...payload, password: '***' }, null, 2));
+    console.log('Registration payload (full, including password):', JSON.stringify(payload, null, 2));
+
     try {
+      console.log('Making fetch request to:', usersEndpoint);
+      console.log('Request method: POST');
+      console.log('Request headers:', { 'Content-Type': 'application/json' });
+      
+      const startTime = Date.now();
       const res = await fetch(usersEndpoint, {
         method: 'POST',
         headers: {
@@ -103,51 +187,172 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
         },
         body: JSON.stringify(payload),
       });
+      const endTime = Date.now();
+      
+      console.log('Request completed in:', endTime - startTime, 'ms');
+      console.log('Registration response status:', res.status);
+      console.log('Registration response statusText:', res.statusText);
+      console.log('Registration response headers:', Object.fromEntries(res.headers.entries()));
+      console.log('Registration response ok:', res.ok);
       
       if (!res.ok) {
-        const errorText = await res.text();
+        let errorText = '';
+        try {
+          errorText = await res.text();
+          console.error('Registration error response (raw):', errorText);
+          console.error('Registration error response length:', errorText.length);
+        } catch (textError) {
+          console.error('Failed to read error response text:', textError);
+          errorText = `HTTP ${res.status} ${res.statusText}`;
+        }
+        
+        console.error('Registration error status:', res.status);
+        console.error('Registration error statusText:', res.statusText);
+        console.error('Registration error URL:', res.url);
+        
         let errorMessage = `Registration failed (${res.status})`;
         
         // Try to parse JSON error response
-        try {
-          const errorJson = JSON.parse(errorText);
-          errorMessage = errorJson.error || errorJson.message || errorMessage;
-          
-          // Handle specific error cases
-          if (errorMessage.toLowerCase().includes('already exists') || 
-              errorMessage.toLowerCase().includes('user already exists')) {
-            errorMessage = 'An account with this email already exists. Please login instead.';
-          }
-        } catch {
-          // If not JSON, use the text as is
-          if (errorText) {
-            errorMessage = errorText.includes('already exists') 
-              ? 'An account with this email already exists. Please login instead.'
-              : errorText;
+        if (errorText) {
+          try {
+            const errorJson = JSON.parse(errorText);
+            console.error('Registration error JSON (parsed):', JSON.stringify(errorJson, null, 2));
+            errorMessage = errorJson.error || errorJson.message || errorJson.msg || errorJson.detail || errorMessage;
+            
+            // Log all possible error fields
+            console.error('Error object keys:', Object.keys(errorJson));
+            if (errorJson.errors) {
+              console.error('Validation errors:', JSON.stringify(errorJson.errors, null, 2));
+            }
+            
+            // Handle specific error cases
+            if (errorMessage.toLowerCase().includes('already exists') || 
+                errorMessage.toLowerCase().includes('user already exists') ||
+                errorMessage.toLowerCase().includes('duplicate')) {
+              errorMessage = 'An account with this email already exists. Please login instead.';
+            } else if (errorMessage.toLowerCase().includes('password') && 
+                       (errorMessage.toLowerCase().includes('required') || 
+                        errorMessage.toLowerCase().includes('needed') ||
+                        errorMessage.toLowerCase().includes('missing'))) {
+              errorMessage = 'Password is required. Please enter a password.';
+            } else if (errorMessage.toLowerCase().includes('email') && 
+                       errorMessage.toLowerCase().includes('required')) {
+              errorMessage = 'Email is required. Please enter a valid email address.';
+            } else if (errorMessage.toLowerCase().includes('username') && 
+                       errorMessage.toLowerCase().includes('required')) {
+              errorMessage = 'Username is required. Please enter a username.';
+            }
+          } catch (parseError) {
+            // If not JSON, use the text as is
+            console.error('Registration error is not JSON. Raw text:', errorText);
+            console.error('Parse error:', parseError);
+            if (errorText) {
+              if (errorText.toLowerCase().includes('already exists') || 
+                  errorText.toLowerCase().includes('duplicate')) {
+                errorMessage = 'An account with this email already exists. Please login instead.';
+              } else if (errorText.toLowerCase().includes('password') && 
+                         (errorText.toLowerCase().includes('required') || 
+                          errorText.toLowerCase().includes('needed'))) {
+                errorMessage = 'Password is required. Please enter a password.';
+              } else {
+                errorMessage = errorText;
+              }
+            }
           }
         }
         
+        console.log('Final error message to show user:', errorMessage);
+        console.log('=== REGISTRATION DEBUG END (ERROR) ===');
         throw new Error(errorMessage);
       }
       
-      const data = await res.json();
-      Alert.alert(
-        'Success', 
-        'Registration successful! You can now login.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Optionally switch to login screen after successful registration
-              // onSwitchToLogin();
-            }
+      // Handle successful response
+      let responseText = '';
+      let data = null;
+      
+      try {
+        responseText = await res.text();
+        console.log('Registration response text (raw):', responseText);
+        console.log('Registration response text length:', responseText.length);
+        
+        // Some APIs return empty body on success, which is okay
+        if (responseText && responseText.trim().length > 0) {
+          try {
+            data = JSON.parse(responseText);
+            console.log('Registration success data (parsed):', JSON.stringify(data, null, 2));
+          } catch (parseError) {
+            console.warn('Response is not valid JSON, but status is OK. Treating as success.');
+            console.warn('Response was:', responseText);
+            // Don't throw error if status is OK - empty response might be valid
           }
-        ]
-      );
+        } else {
+          console.log('Empty response body (this is okay for some APIs)');
+        }
+        
+        console.log('=== REGISTRATION DEBUG END (SUCCESS) ===');
+        
+        Alert.alert(
+          'Success', 
+          'Registration successful! You can now login.',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                // Switch to login screen after successful registration
+                onSwitchToLogin();
+              }
+            }
+          ]
+        );
+      } catch (responseError) {
+        console.error('Error reading success response:', responseError);
+        // Even if we can't parse response, if status is OK, it's still a success
+        console.log('Status was OK (200), treating as success despite parse error');
+        Alert.alert(
+          'Success', 
+          'Registration request completed successfully!',
+          [
+            {
+              text: 'OK',
+              onPress: () => {
+                onSwitchToLogin();
+              }
+            }
+          ]
+        );
+      }
     } catch (err) {
-      console.error('Register submit error', err);
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      console.error('=== REGISTRATION DEBUG END (EXCEPTION) ===');
+      console.error('Register submit error type:', err instanceof Error ? err.constructor.name : typeof err);
+      console.error('Register submit error:', err);
+      console.error('Error message:', err instanceof Error ? err.message : String(err));
+      console.error('Error stack:', err instanceof Error ? err.stack : 'No stack trace');
+      
+      let errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
+      
+      // Check for network errors
+      if (err instanceof TypeError) {
+        if (err.message.includes('fetch') || err.message.includes('Network request failed')) {
+          errorMessage = 'Network error: Cannot connect to server. Please check:\n' +
+                        `1. Backend server is running on ${usersEndpoint}\n` +
+                        '2. Android emulator can reach 10.0.2.2:3000\n' +
+                        '3. No firewall blocking the connection';
+          console.error('Network connectivity issue detected');
+        } else if (err.message.includes('Failed to fetch')) {
+          errorMessage = 'Failed to connect to server. Make sure the backend is running on http://localhost:3000';
+        }
+      }
+      
+      // Check for CORS errors (though less common on Android)
+      if (errorMessage.includes('CORS') || errorMessage.includes('cors')) {
+        errorMessage = 'CORS error: Backend server may need to allow requests from this app';
+      }
+      
+      console.error('Final error message to display:', errorMessage);
       Alert.alert('Registration Failed', errorMessage);
+    } finally {
+      setIsSubmitting(false);
+      console.log('Registration submission completed (success or error)');
     }
   };
 
@@ -288,8 +493,15 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
           isDarkMode={isDarkMode}
         />
 
-        <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-          <Text style={styles.submitText}>Create account</Text>
+        <TouchableOpacity 
+          style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]} 
+          onPress={handleSubmit}
+          disabled={isSubmitting}>
+          {isSubmitting ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.submitText}>Create account</Text>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -434,6 +646,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
   },
   submitText: {
     color: '#fff',

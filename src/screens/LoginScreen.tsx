@@ -45,18 +45,30 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
   };
 
   const handleSubmit = async () => {
+    console.log('=== LOGIN SCREEN: Form submission started ===');
+    console.log('Form values - Email:', email, 'Password:', password ? '***' : '');
+    
     if (!validateForm()) {
+      console.log('=== LOGIN SCREEN: Form validation failed ===');
       return;
     }
 
     setIsLoading(true);
     try {
-      console.log('Login form submitted');
+      console.log('Login form submitted - calling login function');
+      console.log('Trimmed email:', email.trim());
       await login(email.trim(), password);
       // Login successful - AuthContext will handle navigation via App.tsx
+      console.log('=== LOGIN SCREEN: Login successful ===');
       Alert.alert('Success', 'Login successful!');
     } catch (err) {
+      console.error('=== LOGIN SCREEN: Login failed ===');
       console.error('Login submit error:', err);
+      console.error('Error details:', {
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : undefined,
+      });
+      
       const errorMessage = err instanceof Error ? err.message : 'Unknown error occurred';
       
       // Show user-friendly error messages
@@ -72,6 +84,7 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
       Alert.alert('Login Failed', displayMessage);
     } finally {
       setIsLoading(false);
+      console.log('=== LOGIN SCREEN: Form submission completed ===');
     }
   };
 

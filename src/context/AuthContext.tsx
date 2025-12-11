@@ -38,20 +38,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loadStoredAuth = async () => {
+    console.log('=== LOADING STORED AUTH ===');
     try {
       const [storedToken, storedUser] = await Promise.all([
         AsyncStorage.getItem(TOKEN_KEY),
         AsyncStorage.getItem(USER_KEY),
       ]);
 
+      console.log('Stored token found:', storedToken ? 'YES' : 'NO');
+      console.log('Stored user found:', storedUser ? 'YES' : 'NO');
+      
       if (storedToken && storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        console.log('Loaded user from storage:', JSON.stringify(parsedUser, null, 2));
+        console.log('Loaded token from storage:', storedToken.substring(0, 20) + '...');
         setTokenState(storedToken);
-        setUser(JSON.parse(storedUser));
+        setUser(parsedUser);
+        console.log('Auth state restored from storage');
+      } else {
+        console.log('No stored auth data found - user needs to login');
       }
     } catch (error) {
       console.error('Error loading stored auth:', error);
     } finally {
       setIsLoading(false);
+      console.log('=== LOADING STORED AUTH COMPLETE ===');
     }
   };
 
@@ -65,6 +76,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const login = async (email: string, password: string) => {
+    console.log('=== LOGIN DEBUG START ===');
+    console.log('Login email:', email);
+    console.log('Login password provided:', password ? 'YES' : 'NO');
+    
     try {
       const baseUrl =
         Platform.OS === 'android'
@@ -75,8 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const loginEndpoint = `${baseUrl}/api/login`;
       
-      console.log('Attempting login to:', loginEndpoint);
-      console.log('Login payload:', { email });
+      console.log('Platform:', Platform.OS);
+      console.log('Base URL:', baseUrl);
+      console.log('Login endpoint:', loginEndpoint);
+      console.log('Login payload (without password):', { email });
       
       const response = await fetch(loginEndpoint, {
         method: 'POST',
@@ -87,40 +104,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       console.log('Login response status:', response.status);
+      console.log('Login response status text:', response.statusText);
       console.log('Login response headers:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Login error response:', errorText);
+        console.error('Login error status:', response.status);
         let errorMessage = `Login failed: ${response.status}`;
         try {
           const errorJson = JSON.parse(errorText);
+          console.error('Login error JSON:', errorJson);
           errorMessage = errorJson.message || errorJson.error || errorJson.msg || errorMessage;
         } catch {
+          console.error('Login error is not JSON:', errorText);
           errorMessage = errorText || errorMessage;
         }
+        console.log('=== LOGIN DEBUG END (ERROR) ===');
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      console.log('Login success data:', data);
+      console.log('Login success data (full):', JSON.stringify(data, null, 2));
       
       // Handle different response formats
       const authToken = data.token || data.accessToken || data.access_token || data.authToken;
       const userData = data.user || data;
 
+      console.log('Extracted token:', authToken ? 'TOKEN_PRESENT' : 'TOKEN_MISSING');
+      console.log('Extracted user data:', JSON.stringify(userData, null, 2));
+
       if (!authToken) {
         console.warn('No token found in response, available keys:', Object.keys(data));
+        console.log('=== LOGIN DEBUG END (NO TOKEN) ===');
         throw new Error('No authentication token received from server. Please check server response format.');
       }
 
       await setToken(authToken);
+      console.log('Token stored in state and AsyncStorage');
       setUser(userData);
       await AsyncStorage.setItem(USER_KEY, JSON.stringify(userData));
-      console.log('Login successful, token and user stored');
+      console.log('User data stored:', JSON.stringify(userData, null, 2));
+      console.log('=== LOGIN DEBUG END (SUCCESS) ===');
     } catch (error) {
+      console.error('=== LOGIN DEBUG END (EXCEPTION) ===');
       console.error('Login error details:', error);
+      console.error('Error type:', error instanceof Error ? error.constructor.name : typeof error);
+      console.error('Error message:', error instanceof Error ? error.message : String(error));
       if (error instanceof TypeError && error.message.includes('fetch')) {
+        console.error('Network error detected - cannot reach server');
         throw new Error('Network error: Could not connect to server. Make sure the backend is running on http://localhost:3000');
       }
       throw error;

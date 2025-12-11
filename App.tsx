@@ -16,9 +16,19 @@ import HomeScreen from './src/screens/HomeScreen';
 function AppContent() {
   const isDarkMode = useColorScheme() === 'dark';
   const [screen, setScreen] = useState<'login' | 'register'>('login');
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading, user, token } = useAuth();
+
+  React.useEffect(() => {
+    console.log('=== APP CONTENT DEBUG ===');
+    console.log('isLoading:', isLoading);
+    console.log('isAuthenticated:', isAuthenticated);
+    console.log('Current screen:', screen);
+    console.log('User:', user ? JSON.stringify(user, null, 2) : 'null');
+    console.log('Token:', token ? `${token.substring(0, 20)}...` : 'null');
+  }, [isLoading, isAuthenticated, screen, user, token]);
 
   if (isLoading) {
+    console.log('Rendering loading screen');
     return (
       <SafeAreaProvider>
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc' }}>
@@ -29,6 +39,7 @@ function AppContent() {
   }
 
   if (isAuthenticated) {
+    console.log('Rendering HomeScreen - user is authenticated');
     return (
       <SafeAreaProvider>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
@@ -36,6 +47,8 @@ function AppContent() {
       </SafeAreaProvider>
     );
   }
+  
+  console.log('Rendering auth screen (login/register)');
 
   return (
     <SafeAreaProvider>
