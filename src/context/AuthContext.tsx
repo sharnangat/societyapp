@@ -16,7 +16,7 @@ interface AuthContextType {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (emailOrPhone: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User | null) => void;
   setToken: (token: string | null) => void;
@@ -75,10 +75,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const login = async (emailOrPhone: string, password: string) => {
     console.log('=== LOGIN DEBUG START ===');
-    console.log('Login email:', email);
+    console.log('Login email/phone:', emailOrPhone);
     console.log('Login password provided:', password ? 'YES' : 'NO');
+    
+    // Detect if input is email or phone
+    const isEmailFormat = emailOrPhone.includes('@');
+    const loginIdentifier = isEmailFormat ? 'email' : 'phone';
+    console.log('Login identifier type:', loginIdentifier);
     
     try {
       const baseUrl =
@@ -93,14 +98,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('Platform:', Platform.OS);
       console.log('Base URL:', baseUrl);
       console.log('Login endpoint:', loginEndpoint);
-      console.log('Login payload (without password):', { email });
+      
+      // Send the appropriate field based on whether it's email or phone
+      const loginPayload = isEmailFormat 
+        ? { email: emailOrPhone, password }
+        : { phone: emailOrPhone, password };
+      
+      console.log('Login payload (without password):', { 
+        [loginIdentifier]: emailOrPhone 
+      });
       
       const response = await fetch(loginEndpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify(loginPayload),
       });
 
       console.log('Login response status:', response.status);
