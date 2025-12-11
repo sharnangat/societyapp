@@ -7,6 +7,7 @@ import {
   View,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
+import MobileHealthScanner from '../components/MobileHealthScanner';
 
 type Props = {
   isDarkMode: boolean;
@@ -73,6 +74,9 @@ function HomeScreen({ isDarkMode }: Props) {
           )}
         </View>
       )}
+
+      {/* Mobile Health Scanner */}
+      <MobileHealthScanner isDarkMode={isDarkMode} />
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
