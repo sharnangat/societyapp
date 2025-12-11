@@ -364,6 +364,17 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
       <ScrollView
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled">
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={onSwitchToLogin}
+          accessibilityRole="button"
+          accessibilityLabel="Go back to login">
+          <Text style={[styles.backButtonText, isDarkMode && styles.backButtonTextDark]}>
+            ← Back
+          </Text>
+        </TouchableOpacity>
+
         <Text style={[styles.title, isDarkMode && styles.textLight]}>
           Register
         </Text>
@@ -680,6 +691,20 @@ const styles = StyleSheet.create({
   togglePillText: {
     color: '#0f172a',
     fontWeight: '700',
+  },
+  backButton: {
+    alignSelf: 'flex-start',
+    marginBottom: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 4,
+  },
+  backButtonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2563eb',
+  },
+  backButtonTextDark: {
+    color: '#60a5fa',
   },
 });
 
