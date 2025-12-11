@@ -19,26 +19,61 @@ type Props = {
 };
 
 function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
-  const [email, setEmail] = useState('');
+  const [emailOrPhone, setEmailOrPhone] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
 
+  // Helper function to detect if input is email or phone
+  const isEmail = (input: string): boolean => {
+    return input.includes('@');
+  };
+
+  // Helper function to validate phone number (basic validation)
+  const isValidPhone = (input: string): boolean => {
+    // Remove common phone number characters for validation
+    const digitsOnly = input.replace(/[\s\-\(\)\+]/g, '');
+    // At least 10 digits (typical phone number)
+    return /^\d{10,15}$/.test(digitsOnly);
+  };
+
   const validateForm = () => {
-    if (!email.trim()) {
-      Alert.alert('Validation Error', 'Please enter your email address');
+    if (!emailOrPhone.trim()) {
+      Alert.alert(
+        'Validation Error', 
+        'Please provide email or mobile number',
+        [{ text: 'OK' }]
+      );
       return false;
     }
-    if (!email.includes('@')) {
-      Alert.alert('Validation Error', 'Please enter a valid email address');
+    
+    const trimmedInput = emailOrPhone.trim();
+    const isEmailFormat = isEmail(trimmedInput);
+    const isPhoneFormat = isValidPhone(trimmedInput);
+    
+    if (!isEmailFormat && !isPhoneFormat) {
+      Alert.alert(
+        'Validation Error', 
+        'Please provide email or mobile',
+        [{ text: 'OK' }]
+      );
       return false;
     }
+    
     if (!password.trim()) {
-      Alert.alert('Validation Error', 'Please enter your password');
+      Alert.alert(
+        'Validation Error', 
+        'Please enter your password',
+        [{ text: 'OK' }]
+      );
       return false;
     }
     if (password.length < 6) {
-      Alert.alert('Validation Error', 'Password must be at least 6 characters');
+      Alert.alert(
+        'Validation Error', 
+        'Password must be at least 6 characters',
+        [{ text: 'OK' }]
+      );
       return false;
     }
     return true;
@@ -46,7 +81,7 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
 
   const handleSubmit = async () => {
     console.log('=== LOGIN SCREEN: Form submission started ===');
-    console.log('Form values - Email:', email, 'Password:', password ? '***' : '');
+    console.log('Form values - Email/Phone:', emailOrPhone, 'Password:', password ? '***' : '');
     
     if (!validateForm()) {
       console.log('=== LOGIN SCREEN: Form validation failed ===');
@@ -56,8 +91,11 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
     setIsLoading(true);
     try {
       console.log('Login form submitted - calling login function');
-      console.log('Trimmed email:', email.trim());
-      await login(email.trim(), password);
+      const trimmedInput = emailOrPhone.trim();
+      const inputType = isEmail(trimmedInput) ? 'email' : 'phone';
+      console.log('Login input type:', inputType);
+      console.log('Trimmed input:', trimmedInput);
+      await login(trimmedInput, password);
       // Login successful - AuthContext will handle navigation via App.tsx
       console.log('=== LOGIN SCREEN: Login successful ===');
       Alert.alert('Success', 'Login successful!');
@@ -76,7 +114,7 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
       if (errorMessage.includes('Network error') || errorMessage.includes('fetch')) {
         displayMessage = 'Cannot connect to server. Please ensure the backend is running on http://localhost:3000';
       } else if (errorMessage.includes('401') || errorMessage.toLowerCase().includes('invalid')) {
-        displayMessage = 'Invalid email or password. Please try again.';
+        displayMessage = 'Invalid email/phone or password. Please try again.';
       } else if (errorMessage.includes('404')) {
         displayMessage = 'Login endpoint not found. Please check server configuration.';
       }
@@ -100,11 +138,11 @@ function LoginScreen({ isDarkMode, onSwitchToRegister }: Props) {
         </Text>
 
         <FormInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          placeholder="name@example.com"
-          keyboardType="email-address"
+          label="Email or Phone"
+          value={emailOrPhone}
+          onChangeText={setEmailOrPhone}
+          placeholder="email@example.com or 9404818981"
+          keyboardType="default"
           isDarkMode={isDarkMode}
           required
         />
