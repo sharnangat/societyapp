@@ -7,13 +7,13 @@ import {
   View,
 } from 'react-native';
 import { useAuth } from '../context/AuthContext';
-import MobileHealthScanner from '../components/MobileHealthScanner';
 
 type Props = {
   isDarkMode: boolean;
+  onNavigateToProfile?: () => void;
 };
 
-function HomeScreen({ isDarkMode }: Props) {
+function HomeScreen({ isDarkMode, onNavigateToProfile }: Props) {
   const { user, logout, token } = useAuth();
 
   React.useEffect(() => {
@@ -58,45 +58,22 @@ function HomeScreen({ isDarkMode }: Props) {
     <ScrollView
       style={[styles.container, isDarkMode && styles.containerDark]}
       contentContainerStyle={styles.content}>
-      <Text style={[styles.title, isDarkMode && styles.textLight]}>
-        Welcome, {displayName}!
-      </Text>
-
-      {user && (
-        <View style={styles.userInfo}>
-          <Text style={[styles.label, isDarkMode && styles.textLight]}>
-            Email:
-          </Text>
-          <Text style={[styles.value, isDarkMode && styles.textLight]}>
-            {user.email}
-          </Text>
-
-          {user.username && (
-            <>
-              <Text style={[styles.label, isDarkMode && styles.textLight]}>
-                Username:
-              </Text>
-              <Text style={[styles.value, isDarkMode && styles.textLight]}>
-                {user.username}
-              </Text>
-            </>
-          )}
-
-          {(user.firstName || user.lastName) && (
-            <>
-              <Text style={[styles.label, isDarkMode && styles.textLight]}>
-                Name:
-              </Text>
-              <Text style={[styles.value, isDarkMode && styles.textLight]}>
-                {[user.firstName, user.lastName].filter(Boolean).join(' ')}
-              </Text>
-            </>
-          )}
-        </View>
-      )}
-
-      {/* Mobile Health Scanner */}
-      <MobileHealthScanner isDarkMode={isDarkMode} />
+      <View style={styles.headerRow}>
+        <Text style={[styles.title, isDarkMode && styles.textLight]}>
+          Welcome, {displayName}!
+        </Text>
+        {onNavigateToProfile && (
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={onNavigateToProfile}
+            accessibilityLabel="View profile">
+            <Text style={styles.profileButtonIcon}>👤</Text>
+            <Text style={[styles.profileButtonText, isDarkMode && styles.textLight]}>
+              Profile
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>Logout</Text>
@@ -117,37 +94,37 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 24,
   },
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
   title: {
     fontSize: 32,
     fontWeight: '700',
-    marginBottom: 24,
     color: '#0f172a',
+    flex: 1,
   },
   textLight: {
     color: '#e2e8f0',
   },
-  userInfo: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+  profileButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#2563eb',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    gap: 6,
   },
-  label: {
+  profileButtonIcon: {
+    fontSize: 18,
+  },
+  profileButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    marginTop: 12,
-    marginBottom: 4,
-    color: '#64748b',
-  },
-  value: {
-    fontSize: 16,
-    color: '#0f172a',
-    marginBottom: 8,
+    color: '#fff',
   },
   logoutButton: {
     marginTop: 20,

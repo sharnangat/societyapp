@@ -12,11 +12,19 @@ import { AuthProvider, useAuth } from './src/context/AuthContext';
 import LoginScreen from './src/screens/LoginScreen';
 import RegisterScreen from './src/screens/RegisterScreen';
 import HomeScreen from './src/screens/HomeScreen';
+import ProfileScreen from './src/screens/ProfileScreen';
 
 function AppContent() {
   const isDarkMode = useColorScheme() === 'dark';
-  const [screen, setScreen] = useState<'login' | 'register'>('login');
+  const [screen, setScreen] = useState<'login' | 'register' | 'home' | 'profile'>('login');
   const { isAuthenticated, isLoading, user, token } = useAuth();
+
+  // Reset screen to home when authenticated
+  React.useEffect(() => {
+    if (isAuthenticated && screen !== 'home' && screen !== 'profile') {
+      setScreen('home');
+    }
+  }, [isAuthenticated, screen]);
 
   React.useEffect(() => {
     console.log('=== APP CONTENT DEBUG ===');
@@ -39,11 +47,21 @@ function AppContent() {
   }
 
   if (isAuthenticated) {
-    console.log('Rendering HomeScreen - user is authenticated');
+    console.log('Rendering HomeScreen/ProfileScreen - user is authenticated');
     return (
       <SafeAreaProvider>
         <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-        <HomeScreen isDarkMode={isDarkMode} />
+        {screen === 'profile' ? (
+          <ProfileScreen
+            isDarkMode={isDarkMode}
+            onBack={() => setScreen('home')}
+          />
+        ) : (
+          <HomeScreen
+            isDarkMode={isDarkMode}
+            onNavigateToProfile={() => setScreen('profile')}
+          />
+        )}
       </SafeAreaProvider>
     );
   }
