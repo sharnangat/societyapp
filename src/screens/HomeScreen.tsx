@@ -34,12 +34,32 @@ function HomeScreen({ isDarkMode }: Props) {
     }
   };
 
+  // Get display name for welcome message
+  const getDisplayName = (): string => {
+    if (!user) return 'Guest';
+    
+    // Priority: firstName + lastName > firstName > username > email (without @domain)
+    if (user.firstName || user.lastName) {
+      const fullName = [user.firstName, user.lastName].filter(Boolean).join(' ');
+      if (fullName) return fullName;
+    }
+    if (user.firstName) return user.firstName;
+    if (user.username) return user.username;
+    if (user.email) {
+      // Extract name from email (part before @)
+      return user.email.split('@')[0];
+    }
+    return 'User';
+  };
+
+  const displayName = getDisplayName();
+
   return (
     <ScrollView
       style={[styles.container, isDarkMode && styles.containerDark]}
       contentContainerStyle={styles.content}>
       <Text style={[styles.title, isDarkMode && styles.textLight]}>
-        Welcome!
+        Welcome, {displayName}!
       </Text>
 
       {user && (
