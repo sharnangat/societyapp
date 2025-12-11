@@ -14,10 +14,10 @@ import { Alert } from 'react-native';
 
 const usersEndpoint =
   Platform.OS === 'android'
-    ? 'http://10.0.2.2:3000/user/register'
+    ? 'http://10.0.2.2:3000/api/user/register'
     : Platform.OS === 'web'
-    ? 'http://localhost:3000/user/register'
-    : 'http://localhost:3000/user/register';
+    ? 'http://localhost:3000/api/user/register'
+    : 'http://localhost:3000/api/user/register';
 
 type Props = {
   isDarkMode: boolean;
@@ -103,7 +103,7 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
   const testBackendConnection = async () => {
     try {
       console.log('Testing backend connectivity to:', usersEndpoint);
-      const baseUrl = usersEndpoint.replace('/user/register', '');
+      const baseUrl = usersEndpoint.replace('/api/user/register', '');
       const testUrl = `${baseUrl}/health`;
       const response = await fetch(testUrl, { method: 'GET' });
       console.log('Backend health check status:', response.status);
@@ -136,30 +136,29 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
     const backendReachable = await testBackendConnection();
     console.log('Backend reachable:', backendReachable);
 
-    // The backend expects 'password' field, not 'password_hash'
-    // The backend will hash the password server-side
+    // Simplified payload - only send essential fields that backend expects
+    // Match what Postman sends for successful registration
+    // IMPORTANT: Do NOT trim password - it may contain leading/trailing spaces intentionally
     const payload: Record<string, any> = {
       username: form.username.trim(),
       email: form.email.trim(),
-      password: form.password, // Changed from password_hash to password
-      status: form.status,
-      email_verified: form.emailVerified,
-      phone_verified: form.phoneVerified,
-      failed_login_attempts: Number(form.failedLoginAttempts || 0),
+      password: form.password, // Don't trim password - send as-is
     };
 
-    // Add optional fields only if they have values
-    if (form.firstName.trim()) payload.first_name = form.firstName.trim();
-    if (form.lastName.trim()) payload.last_name = form.lastName.trim();
-    if (form.phone.trim()) payload.phone = form.phone.trim();
-    if (form.accountLockedUntil) payload.account_locked_until = form.accountLockedUntil;
-    if (form.passwordResetToken) payload.password_reset_token = form.passwordResetToken;
-    if (form.passwordResetExpires) payload.password_reset_expires = form.passwordResetExpires;
-    if (form.emailVerificationToken) payload.email_verification_token = form.emailVerificationToken;
-    if (form.emailVerificationExpires) payload.email_verification_expires = form.emailVerificationExpires;
-    if (form.lastLogin) payload.last_login = form.lastLogin;
-    if (form.lastLoginIp) payload.last_login_ip = form.lastLoginIp;
-    if (form.createdBy) payload.created_by = form.createdBy;
+    // Only add optional fields if they are actually filled in by user
+    if (form.firstName.trim()) {
+      payload.first_name = form.firstName.trim();
+    }
+    if (form.lastName.trim()) {
+      payload.last_name = form.lastName.trim();
+    }
+    if (form.phone.trim()) {
+      payload.phone = form.phone.trim();
+    }
+    
+    // Note: Removed status, email_verified, phone_verified, failed_login_attempts
+    // and other system fields - backend should set these defaults
+    // This matches a typical Postman registration request
 
     console.log('Form data:', {
       username: form.username,
@@ -168,11 +167,13 @@ function RegisterScreen({ isDarkMode, onSwitchToLogin }: Props) {
       passwordLength: form.password.length,
       firstName: form.firstName,
       lastName: form.lastName,
+      phone: form.phone,
     });
     console.log('Registration endpoint:', usersEndpoint);
     console.log('Platform:', Platform.OS);
     console.log('Registration payload (sanitized):', JSON.stringify({ ...payload, password: '***' }, null, 2));
     console.log('Registration payload (full, including password):', JSON.stringify(payload, null, 2));
+    console.log('NOTE: Payload simplified to match Postman format - only essential fields sent');
 
     try {
       console.log('Making fetch request to:', usersEndpoint);
